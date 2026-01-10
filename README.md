@@ -20,24 +20,32 @@ Production-ready K3s Kubernetes cluster deployment with Ansible automation. This
 
 **See "Configuration Required" section below for detailed instructions and examples**
 
-## Features
+## What it deploys
 
-- **Automated Deployment** - One-command setup with comprehensive validation
-- **High Availability** - Multi-server control plane with external database support
-- **Complete Monitoring** - Prometheus + Grafana stack with persistent storage
-- **Load Balancing** - MetalLB for LoadBalancer service type support
-- **Distributed Storage** - Longhorn block storage with configurable replication
-- **Production Ready** - Security best practices, TLS, RBAC, and network policies
-- **Management Interface** - Rancher cluster management platform
-- **Certificate Management** - cert-manager for automated TLS certificates
-- **Beginner Friendly** - Simple configuration and deployment process
-- **Comprehensive Testing** - Built-in validation and health checks
-- **Easy Scaling** - Add nodes with minimal configuration
-- **Professional Documentation** - Complete guides and examples
+### Core cluster:
+- k3s controller (master)
+- k3s workers joining the cluster
+- optional control-plane tainting/labels
+
+### Platform services:
+
+- MetalLB (L2 LoadBalancer IPs)
+- Traefik (Ingress)
+- Longhorn (storage)
+
+### Apps:
+
+- Prometheus
+- Grafana
+- cert-manager
+- Rancher
+
+### Tooling:
+
+- k9s (installed on controller)
 
 ## Requirements
 
-## Requirements (don’t skip this)
 ### Ansible controller (the machine you run the playbook from)
 
 - Ansible installed
