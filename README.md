@@ -11,11 +11,9 @@ Production-ready K3s Kubernetes cluster deployment with Ansible automation. This
 ## Quick Setup Overview
 
 | Step | What to Do | File | Key Placeholders to Replace |
-|------|-------------|------|----------------------------|What it deploys
+|------|-------------|------|----------------------------|
 
-Core cluster: ets home LAN setups (no cloud load balancers).
-
-What it deploys
+## What it deploys
 
 Core cluster:
 
