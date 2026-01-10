@@ -72,26 +72,38 @@ Each node needs:
 
 ## Quick Start
 
-### 1. Clone Repository
-\`\`\`bash
+## 1. Clone Repository
+
+```bash
 git clone https://github.com/yourusername/k3s-ha-ansible.git
 cd k3s-ha-ansible
-\`\`\`
+```
 
-### 2. Configure Your Cluster
-\`\`\`bash
+## 2. Configure Your Cluster
+
+```bash
 # Copy kubeconfig template and configure
 cp kubeconfig.template kubeconfig
 vim kubeconfig  # Replace YOUR_SERVER_IP with your k3s API server IP
+```
 
-# Edit inventory with your server IPs and SSH user
+### Edit inventory with your server IPs and SSH user
+
+```bash
 vim inventory/sample/hosts.ini  # Replace YOUR_*_IP and YOUR_SSH_USER
+```
 
-# Edit main configuration with your network and security settings
+### Edit main configuration with your network and security settings
+
+```bash
 vim inventory/sample/group_vars/all.yml  # Replace all YOUR_* placeholders
+```
 
-# See the "Configuration Required" section below for detailed placeholder guide
-\`\`\`
+### See the "Configuration Required" section below for detailed placeholder guide
+
+```bash
+cd ConfigurationRequired.md
+```
 
 ### 3. Deploy Cluster
 \`\`\`bash
