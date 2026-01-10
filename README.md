@@ -37,27 +37,30 @@ Production-ready K3s Kubernetes cluster deployment with Ansible automation. This
 
 ## Requirements
 
-Ansible controller (the machine you run the playbook from)
+## Requirements (don’t skip this)
+### Ansible controller (the machine you run the playbook from)
 
-    Ansible installed
-    SSH key-based access to all nodes
-    kubernetes.core collection installed
+- Ansible installed
+- SSH key-based access to all nodes
+- kubernetes.core collection installed
 
 Example (Ubuntu/Debian):
 
+``` bash
 sudo apt update
 sudo apt install -y ansible python3-pip
 ansible-galaxy collection install kubernetes.core
+```
 
-Target nodes (controller + workers)
+### Target nodes (controller + workers)
 
 Each node needs:
 
-    Linux (Currently only tested on Ubuntu/ Debian distros)
-    SSH reachable from Ansible controller
-    Sudo access for ansible_user
-    Working outbound internet + DNS (charts + images must download)
-    Time sync working (NTP)
+- Linux (Currently only tested on Ubuntu/ Debian distros)
+- SSH reachable from Ansible controller
+- Sudo access for ansible_user
+- Working outbound internet + DNS (charts + images must download)
+- Time sync working (NTP)
 
 ## Quick Start
 
