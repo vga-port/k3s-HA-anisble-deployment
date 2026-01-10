@@ -40,11 +40,13 @@ Apps (configurable):
     cert-manager
     Rancher
 
+
 | 1️ | Configure kubeconfig | `kubeconfig` | `YOUR_SERVER_IP` |
 | 2️ | Set server IPs | `inventory/sample/hosts.ini` | `YOUR_MASTER_IP`, `YOUR_WORKER_IP`, `YOUR_SSH_USER` |
 | 3️ | Configure network | `inventory/sample/group_vars/all.yml` | `YOUR_VIP_IP`, `YOUR_LB_IP_*` |
 | 4️ | Set passwords | `inventory/sample/group_vars/all.yml` | `YOUR_*_PASSWORD`, `YOUR_EMAIL@example.com` |
 | 5️ | Generate token | `inventory/sample/group_vars/all.yml` | `YOUR_SECURE_TOKEN_HERE` |
+
 
 ## Table Overview
 
