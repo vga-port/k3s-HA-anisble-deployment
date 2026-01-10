@@ -11,10 +11,78 @@ Production-ready K3s Kubernetes cluster deployment with Ansible automation. This
 ## Quick Setup Overview
 
 | Step | What to Do | File | Key Placeholders to Replace |
-|------|-------------|------|----------------------------|
+|------|-------------|------|----------------------------|What it deploys
+
+Core cluster: ets home LAN setups (no cloud load balancers).
+
+What it deploys
+
+Core cluster:
+
+    k3s controller (master)
+    k3s workers joining the cluster
+    optional control-plane tainting/labels
+
+Platform services:
+
+    MetalLB (L2 LoadBalancer IPs)
+    Traefik (Ingress)
+    Longhorn (storage)
+
+Apps (configurable):
+
+    PostgreSQL (Bitnami)
+    Redis (Bitnami)
+    Nextcloud
+    Immich (+ required library PVC manifest)
+    kube-prometheus-stack
+    Grafana
+    cert-manager
+    Rancher
+
 | 1️ | Configure kubeconfig | `kubeconfig` | `YOUR_SERVER_IP` |
 | 2️ | Set server IPs | `inventory/sample/hosts.ini` | `YOUR_MASTER_IP`, `YOUR_WORKER_IP`, `YOUR_SSH_USER` |
 | 3️ | Configure network | `inventory/sample/group_vars/all.yml` | `YOUR_VIP_IP`, `YOUR_LB_IP_*` |
+| 4️ | Set passwords | `inventory/sample/group_vars/all.yml` | `YOUR_*_PASSWORD`, `YOUR_EMAIL@example.com` |
+| 5️ | Generate token | `inventory/sample/group_vars/all.yml` | `YOUR_SECURE_TOKEN_HERE` |
+
+## Table Overview
+
+| Component | Purpose | Access | Configuration |
+|-----------|---------|--------|-------------|
+| **Grafana** | Metrics visualization | http://YOUR_VIP_ADDRESS:3000 | admin/YOUR_GRAFANA_PASSWORD |
+| **Prometheus** | Metrics collection | Internal service | 30-day retention |
+| **AlertManager** | Alert management | Integrated | High availability |
+| **Longhorn** | Distributed storage | Web UI | 3-way replication |
+| **Rancher** | Cluster management | https://YOUR_RANCHER_DOMAIN | HA deployment |
+| **k9s** | Terminal CLI | \`k9s\` command | Interactive interface |
+| **MetalLB** | Load balancing | Auto IP assignment | L2 advertisement |
+
+**See "Configuration Required" section below for detailed instructions and examples**
+
+## What it deploys
+
+### Core cluster:
+- k3s controller (master)
+- k3s workers joining the cluster
+- optional control-plane tainting/labels
+
+### Platform services:
+
+- MetalLB (L2 LoadBalancer IPs)
+- Traefik (Ingress)
+- Longhorn (storage)
+
+### Apps:
+
+- Prometheus
+- Grafana
+- cert-manager
+- Rancher
+
+### Tooling:
+
+- k9s (installed on controller)
 | 4️ | Set passwords | `inventory/sample/group_vars/all.yml` | `YOUR_*_PASSWORD`, `YOUR_EMAIL@example.com` |
 | 5️ | Generate token | `inventory/sample/group_vars/all.yml` | `YOUR_SECURE_TOKEN_HERE` |
 
@@ -43,6 +111,128 @@ Production-ready K3s Kubernetes cluster deployment with Ansible automation. This
 ### Tooling:
 
 - k9s (installed on controller)
+
+## Requirements
+
+### Ansible controller (the machine you run the playbook from)
+
+- Ansible installed
+- SSH key-based access to all nodes
+- kubernetes.core collection installed
+
+Example (Ubuntu/Debian):
+
+``` bash
+sudo apt update
+sudo apt install -y ansible python3-pip
+ansible-galaxy collection install kubernetes.core
+```
+
+### Target nodes (controller + workers)
+
+Each node needs:
+
+- Linux (Currently only tested on Ubuntu/ Debian distros)
+- SSH reachable from Ansible controller
+- Sudo access for ansible_user
+- Working outbound internet + DNS (charts + images must download)
+- Time sync working (NTP)
+
+## Quick Start
+
+## 1. Clone Repository
+
+```bash
+git clone https://github.com/yourusername/k3s-ha-ansible.git
+cd k3s-ha-ansible
+```
+| 4️ | Set passwords | `inventory/sample/group_vars/all.yml` | `YOUR_*_PASSWORD`, `YOUR_EMAIL@example.com` |
+| 5️ | Generate token | `inventory/sample/group_vars/all.yml` | `YOUR_SECURE_TOKEN_HERE` |
+
+**See "Configuration Required" section below for detailed instructions and examples**
+
+## What it deploys
+
+### Core cluster:
+- k3s controller (master)
+- k3s workers joining the cluster
+- optional control-plane tainting/labels
+
+### Platform services:
+
+- MetalLB (L2 LoadBalancer IPs)
+- Traefik (Ingress)
+- Longhorn (storage)
+
+### Apps:
+
+- Prometheus
+- Grafana
+- cert-manager
+- Rancher
+
+### Tooling:
+
+- k9s (installed on controller)
+
+## Requirements
+
+### Ansible controller (the machine you run the playbook from)
+
+- Ansible installed
+- SSH key-based access to all nodes
+- kubernetes.core collection installed
+
+Example (Ubuntu/Debian):
+
+``` bash
+sudo apt update
+sudo apt install -y ansible python3-pip
+ansible-galaxy collection install kubernetes.core
+```
+
+### Target nodes (controller + workers)
+
+Each node needs:
+
+- Linux (Currently only tested on Ubuntu/ Debian distros)
+- SSH reachable from Ansible controller
+- Sudo access for ansible_user
+- Working outbound internet + DNS (charts + images must download)
+- Time sync working (NTP)
+
+## Quick Start
+
+## 1. Clone Repository
+
+```bash
+git clone https://github.com/yourusername/k3s-ha-ansible.git
+cd k3s-ha-ansible
+```
+
+## 2. Configure Your Cluster
+
+```bash
+# Copy kubeconfig template and configure
+cp kubeconfig.template kubeconfig
+vim kubeconfig  # Replace YOUR_SERVER_IP with your k3s API server IP
+```
+
+Edit inventory with your server IPs and SSH user:
+Use Control + Shift + m to toggle the tab key moving focus. Alternatively, use esc then tab to move to the next interactive element on the page.
+Attach files by dragging & dropping, selecting or pasting them.
+
+## 2. Configure Your Cluster
+
+```bash
+# Copy kubeconfig template and configure
+cp kubeconfig.template kubeconfig
+vim kubeconfig  # Replace YOUR_SERVER_IP with your k3s API server IP
+```
+
+Edit inventory with your server IPs and SSH user:
+Use Control + Shift + m to toggle the tab key moving focus. Alternatively, use esc then tab to move to the next interactive element on the page.
+Attach files by dragging & dropping, selecting or pasting them.
 
 ## Requirements
 
@@ -296,7 +486,8 @@ Before deploying, verify you've replaced:
 ## Configuration Options
 
 ### Core K3s Settings
-\`\`\`yaml
+
+```yaml
 # K3s Configuration
 k3s_version: "v1.29.1+k3s1"
 k3s_ha_enabled: true
@@ -319,10 +510,11 @@ k3s_tls_san:
 vip_enabled: true
 vip_address: "YOUR_VIP_ADDRESS"
 vip_interface: "eth0"
-\`\`\`
+```
 
 ### Platform Services
-\`\`\`yaml
+
+```yaml
 # MetalLB Load Balancer
 metallb_enabled: true
 metallb_ip_range: "YOUR_LB_IP_START-YOUR_LB_IP_END"
@@ -356,75 +548,33 @@ rancher_replicas: 2
 # CLI Tools
 k9s_enabled: true
 k9s_version: "v0.27.4"
-\`\`\`
+```
 
-## 📊 Monitoring & Management
 
-| Component | Purpose | Access | Configuration |
-|-----------|---------|--------|-------------|
-| **Grafana** | Metrics visualization | http://YOUR_VIP_ADDRESS:3000 | admin/YOUR_GRAFANA_PASSWORD |
-| **Prometheus** | Metrics collection | Internal service | 30-day retention |
-| **AlertManager** | Alert management | Integrated | High availability |
-| **Longhorn** | Distributed storage | Web UI | 3-way replication |
-| **Rancher** | Cluster management | https://YOUR_RANCHER_DOMAIN | HA deployment |
-| **k9s** | Terminal CLI | \`k9s\` command | Interactive interface |
-| **MetalLB** | Load balancing | Auto IP assignment | L2 advertisement |
-
-## 🔧 Deployment Methods
+## Deployment Methods
 
 ### Method 1: Interactive Deployment (Beginner Friendly)
-\`\`\`bash
+
+```bash
 # Deploy with guided menu
 ./deploy.sh
 # Interactive menu guides you through setup
 # All components pre-configured with sensible defaults
 # Deployment completes in 10-15 minutes
-\`\`\`
+```
 
 ### Method 2: Direct Ansible (Traditional)
-\`\`\`bash
+
+```bash
 # Full Ansible playbook execution
 ansible-playbook -i inventory.ini site.yml -v
 # Complete access to all Ansible features
 # Custom playbooks and roles supported
-\`\`\`
-
-## 🛠️ Troubleshooting
-
-### Common Issues
-
-#### 1. Deployment Failures
-\`\`\`bash
-# Check prerequisites
-ansible -i inventory.ini all -m ping
-
-# Validate syntax
-ansible-playbook -i inventory.ini site.yml --syntax-check
-
-# Check logs
-journalctl -u k3s -f
-\`\`\`
-
-#### 2. Network Issues
-\`\`\`bash
-# Check MetalLB status
-kubectl get pods -n metallb-system
-kubectl get addresspools -n metallb-system
-
-# Check VIP status
-ping YOUR_VIP_ADDRESS
-\`\`\`
-
-#### 3. Storage Issues
-\`\`\`bash
-# Check Longhorn status
-kubectl get pods -n longhorn-system
-kubectl get storageclass longhorn
-kubectl get volumes
-\`\`\`
+```
 
 ### Debug Commands
-\`\`\`bash
+
+```bash
 # System level debugging
 systemctl status k3s
 journalctl -u k3s -f
@@ -434,63 +584,9 @@ kubectl get nodes -o wide
 kubectl get events --all-namespaces
 kubectl describe pod <pod-name> -n <namespace>
 kubectl logs <pod-name> -n <namespace> --follow
-\`\`\`
+```
 
-## 🔄 Scalability
-
-### Adding Controller Nodes
-\`\`\`ini
-# Add to inventory.ini
-[controller3]
-controller3 ansible_host=YOUR_NEW_CONTROLLER_IP ansible_user=YOUR_SSH_USER
-
-# Update k3s_tls_san in group_vars/all.yml
-k3s_tls_san:
-  - "YOUR_NEW_CONTROLLER_IP"  # New controller IP
-\`\`\`
-
-### Adding Worker Nodes
-\`\`\`ini
-# Add to inventory.ini
-[worker3]
-worker3 ansible_host=YOUR_NEW_WORKER_IP ansible_user=YOUR_SSH_USER
-\`\`\`
-
-### Scaling Services
-\`\`\`yaml
-# Scale Longhorn replication
-longhorn_replica_count: 5
-
-# Expand MetalLB range
-metallb_ip_range: "YOUR_LB_IP_START-YOUR_LB_IP_END"
-
-# Increase monitoring storage
-prometheus_storage: "100Gi"
-\`\`\`
-
-## 🔐 Security Best Practices
-
-### Network Security
-\`\`\`bash
-# Required firewall rules
-sudo ufw allow 6443/tcp    # Kubernetes API
-sudo ufw allow 8472/udp    # Flannel VXLAN
-sudo ufw allow 10250/tcp    # Kubelet API
-sudo ufw allow 2379:2380/tcp # etcd
-sudo ufw allow 2380/udp    # etcd
-\`\`\`
-
-### SSH Security
-\`\`\`bash
-# Use SSH keys instead of passwords
-ssh-keygen -t ed25519 -C "k3s-deploy"
-ssh-copy-id user@server-ip
-
-# Ansible SSH configuration
-ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
-\`\`\`
-
-## 📚 Documentation
+## Documentation
 
 - **[INSTALL.md](INSTALL.md)** - Step-by-step installation instructions
 - **[CONFIGURATION.md](CONFIGURATION.md)** - Complete configuration reference
@@ -499,10 +595,11 @@ ansible_ssh_common_args='-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 - **[SECURITY.md](SECURITY.md)** - Security best practices
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** - Development guidelines
 
-## 🧪 Testing & Validation
+## Testing & Validation
 
 ### Automated Testing
-\`\`\`bash
+
+```bash
 # Syntax validation
 ansible-playbook -i inventory.ini site.yml --syntax-check
 
@@ -511,42 +608,13 @@ ansible-playbook -i inventory.ini site.yml --syntax-check
 
 # Post-deployment verification
 ./verify-cluster.sh
-\`\`\`
+```
 
 ## 📄 License
 
 This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
 
-## 🤝 Contributing
-
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Contribution Areas
-- 🐛 **Bug fixes** and error handling improvements
-- ✨ **New features** and component integrations
-- 📚 **Documentation** and guide improvements
-- 🧪 **Test cases** and validation scripts
-- 🔧 **Configuration options** and templates
-- 🛡️ **Security** enhancements and best practices
-
-### Development Workflow
-\`\`\`bash
-# 1. Fork the repository
-git clone https://github.com/yourusername/k3s-ha-ansible.git
-
-# 2. Create a feature branch
-git checkout -b feature/amazing-feature
-
-# 3. Make your changes
-# Test with multiple configurations
-# Ensure all tests pass
-
-# 4. Submit pull request
-git push origin feature/amazing-feature
-# Create PR with clear description
-\`\`\`
-
-## 🙏 Acknowledgments
+## Acknowledgments
 
 This project builds upon the excellent work of:
 
@@ -559,31 +627,3 @@ This project builds upon the excellent work of:
 - [cert-manager](https://cert-manager.io/) - Certificate automation
 - [Rancher](https://rancher.com/) - Kubernetes management platform
 - [k9s](https://github.com/derailed/k9s) - Terminal Kubernetes manager
-
-## 📞 Support
-
-- 📋 [Issues](https://github.com/yourusername/k3s-ha-ansible/issues) - Bug reports and feature requests
-- 💬 [Discussions](https://github.com/yourusername/k3s-ha-ansible/discussions) - Questions and ideas
-- 📖 [Wiki](https://github.com/yourusername/k3s-ha-ansible/wiki) - Documentation and guides
-- 📊 [Releases](https://github.com/yourusername/k3s-ha-ansible/releases) - Version history and changelogs
-
-## 🚀 Quick Summary
-
-| Feature | Status | Description |
-|---------|--------|-------------|
-| **K3s Deployment** | ✅ Production Ready | HA cluster with external DB support |
-| **MetalLB** | ✅ Production Ready | LoadBalancer with configurable IP ranges |
-| **Longhorn** | ✅ Production Ready | Distributed storage with replication |
-| **Monitoring** | ✅ Production Ready | Prometheus + Grafana with AlertManager |
-| **cert-manager** | ✅ Production Ready | Automated TLS certificate management |
-| **Rancher** | ✅ Production Ready | Cluster management with HA deployment |
-| **k9s** | ✅ Production Ready | Terminal-based cluster management |
-| **Security** | ✅ Production Ready | RBAC, policies, and best practices |
-| **Documentation** | ✅ Complete | Comprehensive guides and examples |
-| **Testing** | ✅ Complete | Built-in validation and troubleshooting |
-
-**🚀 Production-ready K3s cluster with enterprise features and beginner-friendly deployment!** 🚀
-
----
-
-⭐ **If this project helps you, please give it a star and share it with your team!** ⭐
