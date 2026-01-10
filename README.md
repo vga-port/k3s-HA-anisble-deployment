@@ -6,36 +6,60 @@
 
 Production-ready K3s Kubernetes cluster deployment with Ansible automation. This project provides a complete, battle-tested solution for deploying high-availability K3s clusters with comprehensive monitoring, storage, and management tools built-in.
 
-> **🚨 IMPORTANT**: This repository uses placeholders (starting with `YOUR_`) that must be configured. See the **"Configuration Required"** section below for detailed setup instructions.
+> **IMPORTANT**: This repository uses placeholders (starting with `YOUR_`) that must be configured. See the **"Configuration Required"** section below for detailed setup instructions.
 
-## 🚀 Quick Setup Overview
+## Quick Setup Overview
 
 | Step | What to Do | File | Key Placeholders to Replace |
 |------|-------------|------|----------------------------|
-| 1️⃣ | Configure kubeconfig | `kubeconfig` | `YOUR_SERVER_IP` |
-| 2️⃣ | Set server IPs | `inventory/sample/hosts.ini` | `YOUR_MASTER_IP`, `YOUR_WORKER_IP`, `YOUR_SSH_USER` |
-| 3️⃣ | Configure network | `inventory/sample/group_vars/all.yml` | `YOUR_VIP_IP`, `YOUR_LB_IP_*` |
-| 4️⃣ | Set passwords | `inventory/sample/group_vars/all.yml` | `YOUR_*_PASSWORD`, `YOUR_EMAIL@example.com` |
-| 5️⃣ | Generate token | `inventory/sample/group_vars/all.yml` | `YOUR_SECURE_TOKEN_HERE` |
+| 1️ | Configure kubeconfig | `kubeconfig` | `YOUR_SERVER_IP` |
+| 2️ | Set server IPs | `inventory/sample/hosts.ini` | `YOUR_MASTER_IP`, `YOUR_WORKER_IP`, `YOUR_SSH_USER` |
+| 3️ | Configure network | `inventory/sample/group_vars/all.yml` | `YOUR_VIP_IP`, `YOUR_LB_IP_*` |
+| 4️ | Set passwords | `inventory/sample/group_vars/all.yml` | `YOUR_*_PASSWORD`, `YOUR_EMAIL@example.com` |
+| 5️ | Generate token | `inventory/sample/group_vars/all.yml` | `YOUR_SECURE_TOKEN_HERE` |
 
-👉 **See "Configuration Required" section below for detailed instructions and examples**
+**See "Configuration Required" section below for detailed instructions and examples**
 
-## ✨ Features
+## Features
 
-- 🚀 **Automated Deployment** - One-command setup with comprehensive validation
-- 🎯 **High Availability** - Multi-server control plane with external database support
-- 📊 **Complete Monitoring** - Prometheus + Grafana stack with persistent storage
-- 🧰 **Load Balancing** - MetalLB for LoadBalancer service type support
-- 💾 **Distributed Storage** - Longhorn block storage with configurable replication
-- 🔐 **Production Ready** - Security best practices, TLS, RBAC, and network policies
-- 🤠 **Management Interface** - Rancher cluster management platform
-- 🛡️ **Certificate Management** - cert-manager for automated TLS certificates
-- 📝 **Beginner Friendly** - Simple configuration and deployment process
-- 🧪 **Comprehensive Testing** - Built-in validation and health checks
-- 🔄 **Easy Scaling** - Add nodes with minimal configuration
-- 📚 **Professional Documentation** - Complete guides and examples
+- **Automated Deployment** - One-command setup with comprehensive validation
+- **High Availability** - Multi-server control plane with external database support
+- **Complete Monitoring** - Prometheus + Grafana stack with persistent storage
+- **Load Balancing** - MetalLB for LoadBalancer service type support
+- **Distributed Storage** - Longhorn block storage with configurable replication
+- **Production Ready** - Security best practices, TLS, RBAC, and network policies
+- **Management Interface** - Rancher cluster management platform
+- **Certificate Management** - cert-manager for automated TLS certificates
+- **Beginner Friendly** - Simple configuration and deployment process
+- **Comprehensive Testing** - Built-in validation and health checks
+- **Easy Scaling** - Add nodes with minimal configuration
+- **Professional Documentation** - Complete guides and examples
 
-## 🚀 Quick Start
+## Requirements
+
+Ansible controller (the machine you run the playbook from)
+
+    Ansible installed
+    SSH key-based access to all nodes
+    kubernetes.core collection installed
+
+Example (Ubuntu/Debian):
+
+sudo apt update
+sudo apt install -y ansible python3-pip
+ansible-galaxy collection install kubernetes.core
+
+Target nodes (controller + workers)
+
+Each node needs:
+
+    Linux (Currently only tested on Ubuntu/ Debian distros)
+    SSH reachable from Ansible controller
+    Sudo access for ansible_user
+    Working outbound internet + DNS (charts + images must download)
+    Time sync working (NTP)
+
+## Quick Start
 
 ### 1. Clone Repository
 \`\`\`bash
@@ -73,11 +97,11 @@ vim inventory/sample/group_vars/all.yml  # Replace all YOUR_* placeholders
 ./verify-cluster.sh
 \`\`\`
 
-## ⚙️ Configuration Required - Placeholders Guide
+## Configuration Required - Placeholders Guide
 
 This repository uses placeholders (values starting with `YOUR_`) that must be replaced with your actual configuration. Below is a complete guide to what you need to configure and where.
 
-### 📋 **Configuration Files Overview**
+### **Configuration Files Overview**
 
 | File | Purpose | Key Placeholders |
 |------|---------|------------------|
@@ -85,7 +109,7 @@ This repository uses placeholders (values starting with `YOUR_`) that must be re
 | `inventory/sample/group_vars/all.yml` | Main cluster configuration | Network, passwords, tokens, services |
 | `kubeconfig.template` → `kubeconfig` | Kubernetes access | `YOUR_SERVER_IP` |
 
-### 🔧 **Step 1: Network Configuration**
+### **Step 1: Network Configuration**
 
 #### Server IPs (`inventory/sample/hosts.ini`)
 ```ini
@@ -121,7 +145,7 @@ cilium_bgp_lb_cidr: YOUR_LB_CIDR              # e.g., 192.168.100.0/24
 kube_vip_bgp_peeraddress: "YOUR_BGP_PEER_IP"  # e.g., "192.168.1.1"
 ```
 
-### 🔐 **Step 2: Security Configuration**
+### **Step 2: Security Configuration**
 
 #### Cluster Authentication (`inventory/sample/group_vars/all.yml`)
 ```yaml
@@ -150,7 +174,7 @@ cert_manager_default_issuer_email: "YOUR_EMAIL@example.com"
 - `YOUR_GRAFANA_PASSWORD`: Strong password for Grafana admin
 - `YOUR_EMAIL@example.com`: Your email for Let's Encrypt certificates
 
-### 🌐 **Step 3: Optional Network Configuration**
+### **Step 3: Optional Network Configuration**
 
 #### Proxy Settings (if you use a proxy)
 ```yaml
@@ -175,7 +199,7 @@ custom_registries_yaml: |
         password: YOUR_REGISTRY_PASSWORD
 ```
 
-### 🔑 **Step 4: Kubernetes Access**
+### **Step 4: Kubernetes Access**
 
 #### Setup kubeconfig
 ```bash
@@ -189,7 +213,7 @@ vim kubeconfig
 **What to fill in:**
 - `YOUR_SERVER_IP`: Your k3s API server IP (same as `apiserver_endpoint`)
 
-### 📝 **Quick Configuration Script**
+### **Quick Configuration Script**
 
 You can use this script to quickly replace common placeholders:
 
@@ -223,7 +247,7 @@ sed -i "s/YOUR_SERVER_IP/192.168.1.100/g" kubeconfig
 echo "Configuration complete! Review the files and change passwords before deploying."
 ```
 
-### ⚠️ **Important Security Notes**
+### **Important Security Notes**
 
 1. **Change Default Passwords**: Never use the example passwords in production
 2. **Secure Token**: Generate a unique, random token for each deployment  
@@ -231,7 +255,7 @@ echo "Configuration complete! Review the files and change passwords before deplo
 4. **Firewall Rules**: Configure firewall to allow necessary ports
 5. **SSH Keys**: Use SSH key authentication instead of passwords where possible
 
-### ✅ **Verification Checklist**
+### **Verification Checklist**
 
 Before deploying, verify you've replaced:
 - [ ] All `YOUR_*_IP` placeholders with actual IP addresses
@@ -242,47 +266,7 @@ Before deploying, verify you've replaced:
 - [ ] `YOUR_SERVER_IP` in kubeconfig
 - [ ] Optional: BGP, proxy, and registry settings if used
 
-## 🏗️ Architecture
-
-\`\`\`
-┌─────────────────────────────────────────────────────┐
-│                    🌐 Internet Access                     │
-│                                                     │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐ │
-│  │    Grafana  │    │   Longhorn  │    │   Rancher   │ │
-│  │  Prometheus  │    │   Storage   │    │ Management  │ │
-│  │ (Monitoring)│    │ (Distributed)│    │    (UI)     │ │
-│  └─────────────┘    └─────────────┘    └─────────────┘ │
-│                                                     │
-│  ┌─────────────────────────────────────────────────────────────┐ │
-│  │              🌐 K3s Kubernetes Cluster                │ │
-│  │  ┌─────────────┐    ┌─────────────┐                   │ │
-│  │  │ K3s Server  │    │ K3s Agent   │                   │ │
-│  │  │ Control     │    │  Worker      │                   │ │
-│  │  │ Plane       │    │ Node        │                   │ │
-│  │  └─────────────┘    └─────────────┘                   │ │
-│  │                                                     │
-│  │  ┌─────────────────────────────────────────────────────────────┐ │
-│  │  │           🌐 MetalLB Load Balancer              │ │
-│  │  │  IP Pool: YOUR_LB_IP_START-YOUR_LB_IP_END │ │
-│  │  │  L2 Advertisement for LoadBalancer services   │ │
-│  │  └─────────────────────────────────────────────────────────────┘ │
-│  └─────────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────┘
-\`\`\`
-
-## 📋 Requirements
-
-| Requirement | Minimum | Recommended |
-|-------------|----------|-------------|
-| Ansible Controller | 2.9+ | 2.16+ |
-| Target Nodes | Linux | Ubuntu 20.04+ |
-| CPU | 2 cores | 4+ cores |
-| RAM | 4GB | 8GB+ |
-| Storage | 20GB | 50GB+ SSD |
-| Network | Open ports 6443, 8472, 10250, 2379-2380 | Gigabit connectivity |
-
-## 🎯 Configuration Options
+## Configuration Options
 
 ### Core K3s Settings
 \`\`\`yaml
