@@ -87,38 +87,42 @@ cp kubeconfig.template kubeconfig
 vim kubeconfig  # Replace YOUR_SERVER_IP with your k3s API server IP
 ```
 
-### Edit inventory with your server IPs and SSH user
+Edit inventory with your server IPs and SSH user:
 
 ```bash
 vim inventory/sample/hosts.ini  # Replace YOUR_*_IP and YOUR_SSH_USER
 ```
 
-### Edit main configuration with your network and security settings
+Edit main configuration with your network and security settings:
 
 ```bash
 vim inventory/sample/group_vars/all.yml  # Replace all YOUR_* placeholders
 ```
 
-### See the "Configuration Required" section below for detailed placeholder guide
+See the "Configuration Required" section below for detailed placeholder guide:
 
 ```bash
 cd ConfigurationRequired.md
 ```
 
-### 3. Deploy Cluster
-\`\`\`bash
+## 3. Deploy Cluster
+
+```bash
 # IMPORTANT: Make sure all YOUR_* placeholders are replaced before deploying!
 # See "Configuration Required" section above for complete guide.
+```
 
+```bash
 # Deploy everything with one command
 ./deploy.sh
-\`\`\`
+```
 
-### 4. Verify Deployment
-\`\`\`bash
+## 4. Verify Deployment
+
+```bash
 # Check cluster health and get access information
 ./verify-cluster.sh
-\`\`\`
+```
 
 ## Configuration Required - Placeholders Guide
 
