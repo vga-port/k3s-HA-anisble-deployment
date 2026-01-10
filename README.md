@@ -13,31 +13,6 @@ Production-ready K3s Kubernetes cluster deployment with Ansible automation. This
 | Step | What to Do | File | Key Placeholders to Replace |
 |------|-------------|------|----------------------------|
 
-## What it deploys
-
-Core cluster:
-
-    k3s controller (master)
-    k3s workers joining the cluster
-    optional control-plane tainting/labels
-
-Platform services:
-
-    MetalLB (L2 LoadBalancer IPs)
-    Traefik (Ingress)
-    Longhorn (storage)
-
-Apps (configurable):
-
-    PostgreSQL (Bitnami)
-    Redis (Bitnami)
-    Nextcloud
-    Immich (+ required library PVC manifest)
-    kube-prometheus-stack
-    Grafana
-    cert-manager
-    Rancher
-
 
 | 1️ | Configure kubeconfig | `kubeconfig` | `YOUR_SERVER_IP` |
 | 2️ | Set server IPs | `inventory/sample/hosts.ini` | `YOUR_MASTER_IP`, `YOUR_WORKER_IP`, `YOUR_SSH_USER` |
