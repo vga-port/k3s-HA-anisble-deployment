@@ -1,0 +1,41 @@
+---
+# Longhorn configuration
+longhorn_enabled: true
+longhorn_namespace: longhorn-system
+longhorn_version: "v1.6.2"
+longhorn_replica_count: 3
+longhorn_storage_class: "longhorn"
+longhorn_default_storage_class: true
+longhorn_backup_target: ""
+longhorn_backup_target_credential_secret: ""
+longhorn_recurring_jobs_enabled: true
+longhorn_auto_delete_pod_when_volume_detached: false
+longhorn_disable_revision_counter: false
+longhorn_fs_type: "ext4"
+longhorn_mkfs_options: ""
+longhorn_mount_options: ""
+
+# Longhorn UI
+longhorn_ui_enabled: true
+longhorn_ui_service_type: "ClusterIP"
+
+# Storage settings
+longhorn_storage_over_commitment: 200
+longhorn_storage_available: "100Gi"
+longhorn_storage_reserved: "10Gi"
+
+# Node settings
+longhorn_node_selector: {}
+longhorn_tolerations:
+  - key: "node-role.kubernetes.io/master"
+    operator: "Exists"
+    effect: "NoSchedule"
+  - key: "node-role.kubernetes.io/control-plane"
+    operator: "Exists"
+    effect: "NoSchedule"
+
+# Resources
+longhorn_default_cpu_requests: "100m"
+longhorn_default_memory_requests: "128Mi"
+longhorn_default_cpu_limits: "2000m"
+longhorn_default_memory_limits: "4000Mi"

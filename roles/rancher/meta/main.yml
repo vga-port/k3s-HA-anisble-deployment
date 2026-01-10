@@ -1,0 +1,22 @@
+---
+galaxy_info:
+  author: K3s HA Production
+  description: Deploy Rancher management platform
+  license: MIT
+  min_ansible_version: 2.11
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+    - name: Debian
+      versions:
+        - buster
+        - bullseye
+  galaxy_tags:
+    - kubernetes
+    - rancher
+    - k3s
+    - management
+
+dependencies: []

@@ -1,0 +1,22 @@
+---
+galaxy_info:
+  author: K3s HA Production
+  description: Deploy Prometheus monitoring system
+  license: MIT
+  min_ansible_version: 2.11
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+    - name: Debian
+      versions:
+        - buster
+        - bullseye
+  galaxy_tags:
+    - kubernetes
+    - prometheus
+    - monitoring
+    - metrics
+
+dependencies: []

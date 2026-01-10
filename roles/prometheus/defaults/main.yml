@@ -1,0 +1,59 @@
+---
+# Prometheus configuration
+prometheus_enabled: true
+prometheus_namespace: monitoring
+prometheus_version: "25.8.0"
+prometheus_storage_class: "longhorn"
+prometheus_storage_size: "50Gi"
+prometheus_retention: "30d"
+prometheus_replicas: 1
+prometheus_disable_longhorn_storage: true
+
+# Service configuration
+prometheus_service_type: "LoadBalancer"
+prometheus_service_port: 9090
+prometheus_node_port: 30090
+
+# Ingress configuration
+prometheus_ingress_enabled: false
+prometheus_ingress_hostname: "prometheus.local"
+prometheus_ingress_class: "traefik"
+
+# AlertManager configuration
+alertmanager_enabled: true
+alertmanager_version: "v0.27.0"
+alertmanager_replicas: 1
+alertmanager_storage_size: "2Gi"
+
+# Node Exporter
+node_exporter_enabled: true
+node_exporter_version: "v1.8.2"
+node_exporter_port: 9100
+
+# kube-state-metrics
+kube_state_metrics_enabled: true
+kube_state_metrics_version: "v2.13.0"
+
+# Resources
+prometheus_cpu_requests: "500m"
+prometheus_memory_requests: "1Gi"
+prometheus_cpu_limits: "2000m"
+prometheus_memory_limits: "4Gi"
+
+alertmanager_cpu_requests: "100m"
+alertmanager_memory_requests: "128Mi"
+alertmanager_cpu_limits: "500m"
+alertmanager_memory_limits: "512Mi"
+
+# Service Monitor
+prometheus_service_monitor_enabled: true
+prometheus_service_monitor_interval: "30s"
+prometheus_service_monitor_scrape_timeout: "10s"
+
+# Persistent storage
+prometheus_pvc_enabled: true
+alertmanager_pvc_enabled: true
+
+# Security
+prometheus_security_context: {}
+prometheus_pod_security_policy_enabled: false

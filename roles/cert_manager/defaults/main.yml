@@ -1,0 +1,33 @@
+---
+# cert-manager configuration
+cert_manager_enabled: true
+cert_manager_namespace: cert-manager
+cert_manager_version: "v1.15.0"
+cert_manager_install_crds: true
+cert_manager_default_issuer_type: "ClusterIssuer"
+cert_manager_default_issuer_name: "letsencrypt-prod"
+cert_manager_default_issuer_server: "https://acme-v02.api.letsencrypt.org/directory"
+cert_manager_default_issuer_email: "YOUR_EMAIL@example.com"
+
+# Let's Encrypt configuration
+cert_manager_letsencrypt_enabled: true
+cert_manager_letsencrypt_staging_enabled: false
+cert_manager_letsencrypt_staging_server: "https://acme-staging-v02.api.letsencrypt.org/directory"
+
+# Self-signed issuer for development
+cert_manager_self_signed_enabled: true
+cert_manager_self_signed_issuer_name: "self-signed-issuer"
+
+# Webhook configuration
+cert_manager_webhook_enabled: true
+cert_manager_webhook_timeout: 30
+
+# Prometheus metrics
+cert_manager_prometheus_enabled: false
+cert_manager_prometheus_service_monitor_enabled: false
+
+# Resources
+cert_manager_default_cpu_requests: "10m"
+cert_manager_default_memory_requests: "32Mi"
+cert_manager_default_cpu_limits: "100m"
+cert_manager_default_memory_limits: "128Mi"

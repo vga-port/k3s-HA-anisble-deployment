@@ -1,0 +1,212 @@
+---
+- name: Pre tasks
+  hosts: all
+  pre_tasks:
+    - name: Verify Ansible is version 2.11 or above. (If this fails you may need to update Ansible)
+      ansible.builtin.assert:
+        that: ansible_version.full is version_compare('2.11', '>=')
+        msg: >
+          "Ansible is out of date. See here for more info: https://docs.technotim.com/posts/ansible-automation/"
+
+- name: Prepare Proxmox cluster
+  hosts: proxmox
+  gather_facts: true
+  become: true
+  environment: "{{ proxy_env | default({}) }}"
+  roles:
+    - role: proxmox_lxc
+      when: proxmox_lxc_configure
+
+- name: Prepare k3s nodes
+  hosts: k3s_cluster
+  gather_facts: true
+  environment: "{{ proxy_env | default({}) }}"
+  roles:
+    - role: lxc
+      become: true
+      when: proxmox_lxc_configure
+    - role: prereq
+      become: true
+    - role: download
+      become: true
+    - role: k3s_custom_registries
+      become: true
+      when: custom_registries
+
+- name: Setup k3s servers
+  hosts: master
+  environment: "{{ proxy_env | default({}) }}"
+  roles:
+    - role: k3s_server
+      become: true
+
+- name: Setup k3s agents
+  hosts: node
+  environment: "{{ proxy_env | default({}) }}"
+  roles:
+    - role: k3s_agent
+      become: true
+
+- name: Configure k3s cluster
+  hosts: master
+  environment: "{{ proxy_env | default({}) }}"
+  roles:
+    - role: k3s_server_post
+      become: true
+
+- name: Storing kubeconfig in the playbook directory
+  hosts: master
+  environment: "{{ proxy_env | default({}) }}"
+  tasks:
+    - name: Copying kubeconfig from {{ hostvars[groups[group_name_master | default('master')][0]]['ansible_hostname'] }}
+      ansible.builtin.fetch:
+        src: "{{ ansible_user_dir }}/.kube/config"
+        dest: ./kubeconfig
+        flat: true
+      when: ansible_hostname == hostvars[groups[group_name_master | default('master')][0]]['ansible_hostname']
+
+- name: Clean up existing applications and storage before deployment
+  hosts: localhost
+  gather_facts: false
+  environment: "{{ proxy_env | default({}) }}"
+  vars:
+    cleanup_namespaces:
+      - monitoring
+      - cert-manager
+      - cattle-system
+    cleanup_storage_classes:
+      - longhorn
+  tasks:
+    - name: Check if kubeconfig exists
+      ansible.builtin.stat:
+        path: "{{ kubeconfig_path }}"
+      register: kubeconfig_stat
+      failed_when: false
+
+    - name: Display kubeconfig warning if missing
+      ansible.builtin.debug:
+        msg: |
+          WARNING: kubeconfig file not found at {{ kubeconfig_path }}
+          Application deployment will be skipped.
+          To deploy applications, ensure kubeconfig is available.
+          Run 'cp kubeconfig.template kubeconfig' and update it with your cluster details.
+      when: not kubeconfig_stat.stat.exists
+
+    - name: Skip application deployment if kubeconfig missing
+      ansible.builtin.meta: end_play
+      when: not kubeconfig_stat.stat.exists
+    - name: Get all existing PVCs
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ kubeconfig_path }}"
+        api_version: v1
+        kind: PersistentVolumeClaim
+      register: existing_pvcs
+      failed_when: false
+
+    - name: Get all existing PVs
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ kubeconfig_path }}"
+        api_version: v1
+        kind: PersistentVolume
+      register: existing_pvs
+      failed_when: false
+
+    - name: Delete all existing PVCs
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: absent
+        definition:
+          "{{ existing_pvcs.resources }}"
+      when: existing_pvcs.resources | length > 0
+      ignore_errors: true
+
+    - name: Delete all existing PVs
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: absent
+        definition:
+          "{{ existing_pvs.resources }}"
+      when: existing_pvs.resources | length > 0
+      ignore_errors: true
+
+    - name: Delete all existing PVs
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: absent
+        definition: "{{ existing_pvs.resources | map(attribute='metadata') | list }}"
+      when: existing_pvs.resources | length > 0
+      ignore_errors: true
+
+    - name: Delete existing application namespaces
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: absent
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ item }}"
+      loop: "{{ cleanup_namespaces }}"
+      ignore_errors: true
+
+    - name: Delete existing application storage classes
+      kubernetes.core.k8s:
+        kubeconfig: "{{ kubeconfig_path }}"
+        state: absent
+        definition:
+          apiVersion: storage.k8s.io/v1
+          kind: StorageClass
+          metadata:
+            name: "{{ item }}"
+      loop: "{{ cleanup_storage_classes }}"
+      ignore_errors: true
+
+    - name: Wait for cleanup to complete
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ kubeconfig_path }}"
+        api_version: v1
+        kind: Namespace
+      register: cleanup_check
+      retries: 2
+      delay: 5
+      until: cleanup_check.resources | selectattr('metadata.name', 'in', cleanup_namespaces) | list | length == 0
+
+    - name: Deploy cert_manager role
+      ansible.builtin.include_role:
+        name: cert_manager
+        tasks_from: main.yml
+      when: cert_manager_enabled and kubeconfig_path is file
+
+    - name: Wait for cert-manager to fully deploy before other applications
+      ansible.builtin.pause:
+        seconds: 30
+      when: cert_manager_enabled
+
+    - name: Deploy longhorn role
+      ansible.builtin.include_role:
+        name: longhorn
+        tasks_from: main.yml
+      when: longhorn_enabled and kubeconfig_path is file
+
+    - name: Wait for Longhorn to fully deploy before Prometheus
+      ansible.builtin.pause:
+        seconds: 60
+      when: longhorn_enabled
+
+    - name: Deploy prometheus role
+      ansible.builtin.include_role:
+        name: prometheus
+        tasks_from: main.yml
+      when: prometheus_enabled and kubeconfig_path is file
+
+    - name: Deploy grafana role
+      ansible.builtin.include_role:
+        name: grafana
+        tasks_from: main.yml
+      when: grafana_enabled and kubeconfig_path is file
+
+    - name: Deploy rancher role
+      ansible.builtin.include_role:
+        name: rancher
+        tasks_from: main.yml
+      when: rancher_enabled and kubeconfig_path is file

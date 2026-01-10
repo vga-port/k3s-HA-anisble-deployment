@@ -1,0 +1,77 @@
+---
+- name: Ensure Rancher namespace exists
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ rancher_namespace }}"
+  when: rancher_enabled
+
+- name: Add Rancher Helm repository
+  kubernetes.core.helm_repository:
+    kubeconfig: "{{ kubeconfig_path }}"
+    name: rancher-stable
+    repo_url: "https://releases.rancher.com/server-charts/stable"
+  when: rancher_enabled
+
+- name: Deploy Rancher via Helm
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubeconfig_path }}"
+    name: rancher
+    chart_ref: rancher-stable/rancher
+    chart_version: "{{ rancher_version | default('2.9.1') }}"
+    release_namespace: "{{ rancher_namespace | default('cattle-system') }}"
+    create_namespace: true
+    values:
+      hostname: "{{ rancher_hostname | default('rancher.local') }}"
+      bootstrapPassword: "{{ rancher_bootstrap_password | default('rancheradmin123') }}"
+      replicas: "{{ rancher_replicas | default(2) }}"
+      ingress:
+        enabled: false
+      tls: "external"
+      certManager:
+        enabled: false
+    wait: true
+    timeout: 10m
+  when: rancher_enabled | default(false)
+
+- name: Wait for Rancher to be ready
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    api_version: apps/v1
+    kind: Deployment
+    name: rancher
+    namespace: "{{ rancher_namespace }}"
+    wait_condition:
+      type: Available
+      status: "True"
+      reason: MinimumReplicasAvailable
+    wait_timeout: 300
+  register: rancher_deployment
+  retries: 10
+  delay: 30
+  until: rancher_deployment.resources[0].status.availableReplicas == rancher_replicas
+  when: rancher_enabled
+
+- name: Get Rancher bootstrap token
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    api_version: v1
+    kind: Secret
+    name: bootstrap-secret
+    namespace: "{{ rancher_namespace }}"
+  register: rancher_bootstrap
+  when: rancher_enabled
+
+- name: Display Rancher access information
+  debug:
+    msg: |
+      Rancher has been deployed successfully!
+      URL: https://{{ rancher_hostname }}
+      Bootstrap Password: {{ rancher_bootstrap_password }}
+      To get the initial bootstrap token, run:
+      kubectl get secret bootstrap-secret -n {{ rancher_namespace }} -o jsonpath='{.data.bootstrapPassword}' | base64 -d
+  when: rancher_enabled

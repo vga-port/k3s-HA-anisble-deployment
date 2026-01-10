@@ -1,0 +1,164 @@
+---
+- name: Ensure monitoring namespace exists
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ prometheus_namespace }}"
+  when: prometheus_enabled
+
+- name: Add Prometheus Community Helm repository
+  kubernetes.core.helm_repository:
+    kubeconfig: "{{ kubeconfig_path }}"
+    name: prometheus-community
+    repo_url: "https://prometheus-community.github.io/helm-charts"
+  when: prometheus_enabled
+
+- name: Deploy Prometheus via Helm
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubeconfig_path }}"
+    name: prometheus
+    chart_ref: prometheus-community/prometheus
+    chart_version: "{{ prometheus_version }}"
+    release_namespace: "{{ prometheus_namespace }}"
+    create_namespace: true
+    values:
+      server:
+        enabled: true
+        replicaCount: "{{ prometheus_replicas }}"
+        service:
+          type: "{{ prometheus_service_type }}"
+          port: "{{ prometheus_service_port }}"
+          nodePort: "{{ prometheus_node_port }}"
+      persistentVolume:
+        enabled: false
+        resources:
+          requests:
+            cpu: "{{ prometheus_cpu_requests }}"
+            memory: "{{ prometheus_memory_requests }}"
+          limits:
+            cpu: "{{ prometheus_cpu_limits }}"
+            memory: "{{ prometheus_memory_limits }}"
+        retention: "{{ prometheus_retention }}"
+      alertmanager:
+        enabled: "{{ alertmanager_enabled }}"
+        replicaCount: "{{ alertmanager_replicas }}"
+        persistentVolume:
+          enabled: "{{ alertmanager_pvc_enabled }}"
+          storageClass: "{{ prometheus_storage_class }}"
+          size: "{{ alertmanager_storage_size }}"
+        resources:
+          requests:
+            cpu: "{{ alertmanager_cpu_requests }}"
+            memory: "{{ alertmanager_memory_requests }}"
+          limits:
+            cpu: "{{ alertmanager_cpu_limits }}"
+            memory: "{{ alertmanager_memory_limits }}"
+      nodeExporter:
+        enabled: "{{ node_exporter_enabled }}"
+        port: "{{ node_exporter_port }}"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+      kubeStateMetrics:
+        enabled: "{{ kube_state_metrics_enabled }}"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "200m"
+            memory: "256Mi"
+      serviceMonitor:
+        enabled: "{{ prometheus_service_monitor_enabled }}"
+        interval: "{{ prometheus_service_monitor_interval }}"
+        scrapeTimeout: "{{ prometheus_service_monitor_scrape_timeout }}"
+    wait: true
+    timeout: 15m
+  when: prometheus_enabled
+
+- name: Wait for Prometheus to be ready
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    api_version: apps/v1
+    kind: Deployment
+    name: prometheus-server
+    namespace: "{{ prometheus_namespace }}"
+    wait_condition:
+      type: Available
+      status: "True"
+      reason: MinimumReplicasAvailable
+    wait_timeout: 300
+  register: prometheus_deployment
+  retries: 10
+  delay: 30
+  when: prometheus_enabled
+
+- name: Create Prometheus ServiceMonitor for K3s
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: monitoring.coreos.com/v1
+      kind: ServiceMonitor
+      metadata:
+        name: k3s-servicemonitor
+        namespace: "{{ prometheus_namespace }}"
+        labels:
+          app: prometheus
+      spec:
+        selector:
+          matchLabels:
+            app.kubernetes.io/name: k3s
+        endpoints:
+          - port: http-metrics
+            interval: 30s
+            path: /metrics
+  ignore_errors: true
+  failed_when: false
+  when: prometheus_enabled and prometheus_service_monitor_enabled
+
+- name: Create Prometheus Ingress
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: prometheus-ingress
+        namespace: "{{ prometheus_namespace }}"
+        annotations:
+          kubernetes.io/ingress.class: "{{ prometheus_ingress_class }}"
+      spec:
+        rules:
+          - host: "{{ prometheus_ingress_hostname }}"
+            http:
+              paths:
+                - path: /
+                  pathType: Prefix
+                  backend:
+                    service:
+                      name: prometheus-server
+                      port:
+                        number: "{{ prometheus_service_port }}"
+  when: prometheus_enabled and prometheus_ingress_enabled
+
+- name: Display Prometheus access information
+  debug:
+    msg: |
+      Prometheus has been deployed successfully!
+      Service: prometheus-server.{{ prometheus_namespace }}.svc.cluster.local:{{ prometheus_service_port }}
+      Port-forward: kubectl port-forward -n {{ prometheus_namespace }} svc/prometheus-server {{ prometheus_service_port }}:{{ prometheus_service_port }}
+      Then access: http://localhost:{{ prometheus_service_port }}
+      {% if prometheus_ingress_enabled %}
+      Ingress: http://{{ prometheus_ingress_hostname }}
+      {% endif %}
+  when: prometheus_enabled

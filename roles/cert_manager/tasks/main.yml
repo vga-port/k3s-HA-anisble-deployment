@@ -1,0 +1,156 @@
+---
+- name: Ensure cert-manager namespace exists
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ cert_manager_namespace }}"
+  when: cert_manager_enabled
+
+- name: Check if cert-manager CRDs exist
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+  register: cert_manager_crds
+  failed_when: false
+  when: cert_manager_enabled and cert_manager_install_crds
+
+- name: Install cert-manager CRDs
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      - "{{ lookup('url', 'https://github.com/cert-manager/cert-manager/releases/download/' + cert_manager_version + '/cert-manager.crds.yaml', split_lines=False) }}"
+  when: cert_manager_enabled and cert_manager_install_crds and cert_manager_crds.resources | length == 0
+
+- name: Add cert-manager Helm repository
+  kubernetes.core.helm_repository:
+    kubeconfig: "{{ kubeconfig_path }}"
+    name: jetstack
+    repo_url: "https://charts.jetstack.io"
+  when: cert_manager_enabled
+
+- name: Check if cert-manager is already installed
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    api_version: apps/v1
+    kind: Deployment
+    name: cert-manager
+    namespace: "{{ cert_manager_namespace }}"
+  register: cert_manager_deployment
+  failed_when: false
+  when: cert_manager_enabled
+
+- name: Deploy cert-manager via Helm
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubeconfig_path }}"
+    name: cert-manager
+    chart_ref: jetstack/cert-manager
+    chart_version: "{{ cert_manager_version }}"
+    release_namespace: "{{ cert_manager_namespace }}"
+    create_namespace: true
+    state: present
+    values:
+      installCRDs: "{{ cert_manager_install_crds }}"
+      webhook:
+        enabled: "{{ cert_manager_webhook_enabled }}"
+        timeout: "{{ cert_manager_webhook_timeout }}"
+      prometheus:
+        enabled: "{{ cert_manager_prometheus_enabled }}"
+        servicemonitor:
+          enabled: "{{ cert_manager_prometheus_service_monitor_enabled }}"
+      defaultResources:
+        requests:
+          cpu: "{{ cert_manager_default_cpu_requests }}"
+          memory: "{{ cert_manager_default_memory_requests }}"
+        limits:
+          cpu: "{{ cert_manager_default_cpu_limits }}"
+          memory: "{{ cert_manager_default_memory_limits }}"
+    wait: true
+    timeout: 5m
+  when: cert_manager_enabled
+
+- name: Wait for cert-manager to be ready
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ kubeconfig_path }}"
+    api_version: apps/v1
+    kind: Deployment
+    name: cert-manager
+    namespace: "{{ cert_manager_namespace }}"
+    wait_condition:
+      type: Available
+      status: "True"
+      reason: MinimumReplicasAvailable
+    wait_timeout: 300
+  register: cert_manager_deployment
+  retries: 10
+  delay: 30
+  when: cert_manager_enabled
+
+- name: Create self-signed ClusterIssuer
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: cert-manager.io/v1
+      kind: ClusterIssuer
+      metadata:
+        name: "{{ cert_manager_self_signed_issuer_name }}"
+      spec:
+        selfSigned: {}
+  when: cert_manager_enabled and cert_manager_self_signed_enabled
+
+- name: Create Let's Encrypt ClusterIssuer (Production)
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: cert-manager.io/v1
+      kind: ClusterIssuer
+      metadata:
+        name: "{{ cert_manager_default_issuer_name }}"
+      spec:
+        acme:
+          server: "{{ cert_manager_default_issuer_server }}"
+          email: "{{ cert_manager_default_issuer_email }}"
+          privateKeySecretRef:
+            name: letsencrypt-prod
+          solvers:
+            - http01:
+                ingress:
+                  class: "traefik"
+  when: cert_manager_enabled and cert_manager_letsencrypt_enabled
+
+- name: Create Let's Encrypt ClusterIssuer (Staging)
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig_path }}"
+    state: present
+    definition:
+      apiVersion: cert-manager.io/v1
+      kind: ClusterIssuer
+      metadata:
+        name: "letsencrypt-staging"
+      spec:
+        acme:
+          server: "{{ cert_manager_letsencrypt_staging_server }}"
+          email: "{{ cert_manager_default_issuer_email }}"
+          privateKeySecretRef:
+            name: letsencrypt-staging
+          solvers:
+            - http01:
+                ingress:
+                  class: "traefik"
+  when: cert_manager_enabled and cert_manager_letsencrypt_staging_enabled
+
+- name: Display cert-manager information
+  debug:
+    msg: |
+      cert-manager has been deployed successfully!
+      Default Issuer: {{ cert_manager_default_issuer_name }}
+      Self-Signed Issuer: {{ cert_manager_self_signed_issuer_name }}
+      To verify: kubectl get clusterissuers -n {{ cert_manager_namespace }}
+  when: cert_manager_enabled

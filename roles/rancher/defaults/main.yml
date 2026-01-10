@@ -1,0 +1,17 @@
+---
+# Rancher configuration
+rancher_enabled: true
+rancher_namespace: cattle-system
+rancher_version: "2.9.1"
+rancher_hostname: "rancher.local"
+rancher_bootstrap_password: "YOUR_RANCHER_PASSWORD"
+rancher_replicas: 2
+rancher_ingress_enabled: false
+rancher_tls_enabled: false
+rancher_cert_manager_enabled: true
+
+# Rancher system charts
+rancher_system_chart_version: "v0.2.0"
+
+# Timeouts for deployment
+rancher_deployment_timeout: 600
